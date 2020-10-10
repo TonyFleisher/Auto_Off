@@ -1,0 +1,11 @@
+{
+        "author": "C Steele",
+        "comment": "",
+        "copyright": " &#9400; 2020 cSteele",
+         "application": {
+               "Auto_Off":  {"ver": "0.1.0", "updated": "10/9/2020"},
+               "Auto_Off_c":  {"ver": "0.1.0", "updated": "10/9/2020"}
+         },
+         "driver": {
+         }
+}
