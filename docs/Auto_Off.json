@@ -9,7 +9,7 @@
       "id": "b03472ad-a305-4544-8e76-1d5b39e750b0",
       "name": "Auto_Off",
       "namespace": "csteele",
-      "location": "https://raw.githubusercontent.com/csteele-PD/Hubitat-public/master/Auto_Off/Auto_Off.groovy",
+      "location": "https://raw.githubusercontent.com/csteele-PD/Hubitat-public/main/Auto_Off/Auto_Off.groovy",
       "required": true,
       "oauth": false,
       "primary": false
@@ -18,7 +18,7 @@
       "id": "dd3ec702-7bee-4a46-aad4-b9a53145d9ec",
       "name": "Auto_Off device",
       "namespace": "csteele",
-      "location": "https://raw.githubusercontent.com/csteele-PD/Hubitat-public/master/Auto_Off/Auto_Off_c.groovy",
+      "location": "https://raw.githubusercontent.com/csteele-PD/Hubitat-public/main/Auto_Off/Auto_Off_c.groovy",
       "required": true,
       "oauth": false,
       "primary": false
