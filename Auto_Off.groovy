@@ -22,7 +22,7 @@ definition(
 	author: "Mattias Fornander, CSteele",
 	description: "The Child app will automatically turn off/on devices after set amount of time on/off",
 	category: "Automation",
-	importUrl: "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/master/Auto_Off.groovy",
+	importUrl: "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off.groovy",
 
 	iconUrl: "",
 	iconX2Url: "",
@@ -96,7 +96,7 @@ def display() {
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
 def updateCheck()
 {    
-	def paramsUD = [uri: "https://hubitatcommunity.github.io/Auto_Off/version2.json"]
+	def paramsUD = [uri: "https://github.com/HubitatCommunity/Auto_Off/blob/main/docs/version2.json"]
 	
  	asynchttpGet("updateCheckHandler", paramsUD) 
 }
