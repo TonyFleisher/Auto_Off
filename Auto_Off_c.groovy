@@ -1,5 +1,5 @@
 /**
- *  Hubitat Import URL: https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/master/Auto_Off_c.groovy
+ *  Hubitat Import URL: https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_c.groovy
  */
 
 /**
@@ -29,7 +29,7 @@ definition(
 	author: "Mattias Fornander, CSteele",
 	description: "Automatically turn off/on devices after set amount of time on/off",
 	category: "Automation",
-	importUrl: "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/master/Auto_Off_c.groovy",
+	importUrl: "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_c.groovy",
 	    
 	parent: "csteele:Auto_Off",
 	
