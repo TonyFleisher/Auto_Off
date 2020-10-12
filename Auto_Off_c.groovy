@@ -253,7 +253,7 @@ String fixDateTimeString( eventDate) {
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
 def updateCheck()
 {    
-	def paramsUD = [uri: "https://hubitatcommunity.github.io/Auto_Off/version2.json"]
+	def paramsUD = [uri: "https://github.com/HubitatCommunity/Auto_Off/blob/main/docs/version2.json"]
 	
  	asynchttpGet("updateCheckHandler", paramsUD) 
 }
