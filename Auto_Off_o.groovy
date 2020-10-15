@@ -19,7 +19,6 @@
  */
 	public static String version()      {  return "v1.0.1"  }
 
-
 import groovy.time.*
 
 // Set app Metadata for the Hub
