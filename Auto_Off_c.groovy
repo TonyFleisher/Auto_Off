@@ -17,8 +17,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
-	public static String version()      {  return "v1.0.0"  }
-
+	public static String version()      {  return "v1.0.3"  }
 
 import groovy.time.*
 
@@ -59,8 +58,17 @@ def installed() {
  */
 def updated() {
 	if (descTextEnable) log.info "Updated with settings: ${settings}"
-	unsubscribe()
-	unschedule()
+ 	String curPref = ("$autoTime${devices}${master}$invert").toString().bytes.encodeBase64()
+ 	if (curPref != state.prevPref) {
+		state.prevPref = curPref
+		unsubscribe()
+		unschedule()
+		if (descTextEnable) log.warn "Auto_Off reset."
+	}
+	if (autoTime > 1440) {
+	    autoTime = 1440
+	    app.updateSetting("autoTime", autoTime)
+	}
 	initialize()
 }
 
@@ -69,7 +77,7 @@ def updated() {
  * Internal helper function with shared code for installed() and updated().
  */
 private initialize() {
-	state.offList = [:]
+	if (state.offList == null) state.offList = [:]
 	subscribe(devices, "switch", switchHandler)
 	updateMyLabel()
 }
@@ -83,7 +91,7 @@ def mainPage() {
 	  updateMyLabel()
 	  section("<h2>${app.label ?: app.name}</h2>"){
             paragraph '<i>Automatically turn off/on devices after set amount of time on/off.</i>'
-            input name: "autoTime", type: "number", title: "Time until auto-off (minutes) [24hrs max.]", required: true
+            input name: "autoTime", type: "number", title: "Time until auto-off (minutes)", required: true
             input name: "devices", type: "capability.switch", title: "Devices", required: true, multiple: true
             input name: "invert", type: "bool", title: "Invert logic (make app Auto On)", defaultValue: false
             input name: "master", type: "capability.switch", title: "Master Switch", multiple: false
@@ -122,10 +130,6 @@ def mainPage() {
 def switchHandler(evt) {
 	// Add the watched device if turning on, or off if inverted mode
 	if ((evt.value == "on") ^ (invert == true)) {
-	    if (autoTime > 1440) {
-	        autoTime = 1440
-	        app.updateSetting("autoTime", autoTime)
-	    }
 	    def delay = Math.floor(autoTime * 60).toInteger()
 	    runIn(delay, scheduleHandler, [overwrite: false])
 	    atomicState.cycleEnd = now() + autoTime * 60 * 1000
@@ -179,7 +183,6 @@ def setDebug(dbg, inf) {
 
 def display()
 {
-//	updateCheck()
 	section {
 		paragraph "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
 		paragraph "<div style='color:#1A77C9;text-align:center;font-weight:small;font-size:9px'>Developed by: C Steele<br/>Version Status: $state.Status<br>Current Version: ${version()} -  ${thisCopyright}</div>"
@@ -250,55 +253,37 @@ String fixDateTimeString( eventDate) {
 }
 
 
-// Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
-def updateCheck()
+// Parent does the version JSON fetch and distributes it to each Child.
+def updateCheck(respUD)
 {    
-	def paramsUD = [uri: "https://github.com/HubitatCommunity/Auto_Off/blob/main/docs/version2.json"]
-	
- 	asynchttpGet("updateCheckHandler", paramsUD) 
-}
-
-
-def updateCheckHandler(resp, data) {
 	state.InternalName = "Auto_Off_c"
 	state.Status = "Unknown"
-	
-	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
-		respUD = parseJson(resp.data)
-		//log.warn " Version Checking - Response Data: $respUD"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver 
-		state.Copyright = "${thisCopyright} -- ${version()}"
-		// uses reformattted 'version2.json' 
-		def newVer = padVer(respUD.application.(state.InternalName).ver)
-		def currentVer = padVer(version())               
-		state.UpdateInfo = (respUD.application.(state.InternalName).updated)
-            // log.debug "updateCheck: ${respUD.driver.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}"
-	
-		switch(newVer) {
-			case { it == "NLS"}:
-			      state.Status = "<b>** This Application is no longer supported by ${respUD.author}  **</b>"       
-			      log.warn "** This Application is no longer supported by ${respUD.author} **"      
-				break
-			case { it > currentVer}:
-			      state.Status = "<b>New Version Available (Version: ${respUD.application.(state.InternalName).ver})</b>"
-			      log.warn "** There is a newer version of this Application available  (Version: ${respUD.application.(state.InternalName).ver}) **"
-			      log.warn "** $state.UpdateInfo **"
-				break
-			case { it < currentVer}:
-			      state.Status = "<b>You are using a Test version of this Application (Expecting: ${respUD.application.(state.InternalName).ver})</b>"
-				break
-			default:
-				state.Status = "Current"
-				if (descTextEnable) log.info "You are using the current version of this Application"
-				break
-		}
 
-	      sendEvent(name: "chkUpdate", value: state.UpdateInfo)
-	      sendEvent(name: "chkStatus", value: state.Status)
-      }
-      else
-      {
-           if (descTextEnable) log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI"
-      }
+	state.Copyright = "${thisCopyright} -- ${version()}"
+	// uses reformattted 'version2.json' 
+	def newVer = padVer(respUD.application.(state.InternalName).ver)
+	def currentVer = padVer(version())               
+	state.UpdateInfo = (respUD.application.(state.InternalName).updated)
+      // log.debug "updateCheck: ${respUD.application.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}"
+	
+	switch(newVer) {
+		case { it == "NLS"}:
+		      state.Status = "<b>** This Application is no longer supported by ${respUD.author}  **</b>"       
+		      log.warn "** This Application is no longer supported by ${respUD.author} **"      
+			break
+		case { it > currentVer}:
+		      state.Status = "<b>New Version Available (Version: ${respUD.application.(state.InternalName).ver})</b>"
+		      log.warn "** There is a newer version of this Application available  (Version: ${respUD.application.(state.InternalName).ver}) **"
+		      log.warn "** $state.UpdateInfo **"
+			break
+		case { it < currentVer}:
+		      state.Status = "<b>You are using a Test version of this Application (Expecting: ${respUD.application.(state.InternalName).ver})</b>"
+			break
+		default:
+			state.Status = "Current"
+			if (descTextEnable) log.info "You are using the current version of this Application"
+			break
+	}
 }
 
 
