@@ -13,7 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
-	public static String version()      {  return "v1.0.0"  }
+	public static String version()      {  return "v1.0.1"  }
 
 
 definition(
@@ -44,7 +44,6 @@ def installed() {
 def updated() {
 	if (descTextEnable) log.info "Updated with settings: ${settings}"
 	unschedule()
-	unsubscribe()
 	if (debugOutput) runIn(1800,logsOff)
 	initialize()
 }
@@ -65,8 +64,10 @@ def mainPage() {
 			paragraph title: "Title",
 			"<b>This parent app is a container for all:</b><br> Auto_Off child apps"
 		}
-      	section (){app(name: "Auto_Off", appName: "Auto_Off device", namespace: "csteele", title: "New Auto Off Child", multiple: true)}    
+      	section (){app(name: "Auto_Off", appName: "Auto_Off device", namespace: "csteele", title: "Create a New Auto Off Child - Delay", multiple: true)}    
       	  
+      	section (){app(name: "Auto_Off", appName: "Auto_Off poll", namespace: "csteele", title: "Create a New Auto Off Child - Poll", multiple: true)}    
+
       	section (title: "<b>Name/Rename</b>") {label title: "Enter a name for this parent app (optional)", required: false}
 	
 		section ("Other preferences") {
@@ -96,7 +97,7 @@ def display() {
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
 def updateCheck()
 {    
-	def paramsUD = [uri: "https://github.com/HubitatCommunity/Auto_Off/blob/main/docs/version2.json"]
+	def paramsUD = [uri: "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/docs/version2.json", timeout: 10]
 	
  	asynchttpGet("updateCheckHandler", paramsUD) 
 }
@@ -114,7 +115,7 @@ def updateCheckHandler(resp, data) {
 		def newVer = padVer(respUD.application.(state.InternalName).ver)
 		def currentVer = padVer(version())               
 		state.UpdateInfo = (respUD.application.(state.InternalName).updated)
-            // log.debug "updateCheck: ${respUD.driver.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}"
+            // log.debug "updateCheck: ${respUD.application.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}"
 	
 		switch(newVer) {
 			case { it == "NLS"}:
@@ -137,6 +138,9 @@ def updateCheckHandler(resp, data) {
 
 	      sendEvent(name: "chkUpdate", value: state.UpdateInfo)
 	      sendEvent(name: "chkStatus", value: state.Status)
+
+		childApps.each { child -> child.updateCheck(respUD) }
+
       }
       else
       {
