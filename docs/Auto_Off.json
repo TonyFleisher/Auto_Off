@@ -1,36 +1,37 @@
 {
   "packageName": "Auto_Off",
   "author": "csteele",
-  "version": "1.0.0",
-  "minimumHEVersion": "1.0.0",
   "dateReleased": "2020-10-11",
   "apps": [
     {
       "id": "b03472ad-a305-4544-8e76-1d5b39e750b0",
       "name": "Auto_Off",
       "namespace": "csteele",
-      "location": "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off.groovy",
-      "required": true,
+      "location": "http://whiskers.aclysnet.com/HSM/Auto_Off.groovy",
+      "version": "1.0.1",
       "oauth": false,
-      "primary": false
+      "primary": false,
+      "required": true
     },
     {
       "id": "dd3ec702-7bee-4a46-aad4-b9a53145d9ec",
       "name": "Auto_Off device",
       "namespace": "csteele",
-      "location": "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_c.groovy",
-      "required": true,
+      "location": "http://whiskers.aclysnet.com/HSM/Auto_Off_c.groovy",
+      "version": "1.0.3",
       "oauth": false,
-      "primary": false
+      "primary": false,
+      "required": true
     },
     {
       "id": "887bf9e2-41ce-483b-a9d7-121a26d76eb1",
       "name": "Auto_Off poll",
       "namespace": "csteele",
-      "location": "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_o.groovy",
-      "required": false,
+      "location": "http://whiskers.aclysnet.com/HSM/Auto_Off_o.groovy",
+      "version": "1.0.1",
       "oauth": false,
-      "primary": false
+      "primary": false,
+      "required": true
     }
   ]
 }
