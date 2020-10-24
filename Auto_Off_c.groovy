@@ -64,14 +64,37 @@ def updated() {
 		unsubscribe()
 		unschedule()
 		if (descTextEnable) log.warn "Auto_Off reset."
+		cleanupOffList()
+		rescheduleOffList()
+		updateMyLabel()
 	}
 	if (autoTime > 1440) {
 	    autoTime = 1440
 	    app.updateSetting("autoTime", autoTime)
+		log.info "Adjusting auto-off time to 1 day (max)"
 	}
 	initialize()
 }
 
+def cleanupOffList() {
+	def deviceList = devices?.collect { it.id }
+	if (deviceList) {
+		if (state.offList) {
+			state.offList -= (state.offList.findAll { !(deviceList.contains(it.key)) })
+		}
+	} else {
+		if (debugOutput) log.debug "Clearing offList"
+		state.offList = [:]
+	}
+}
+
+def rescheduleOffList() {
+	state.offList?.each {
+		def runTime = new Date(it.value)
+		if (debugOutput) log.debug "Scheduling handler for dev ${it.key} for ${runTime}"
+		runOnce(runTime, scheduleHandler, [overwrite: false])
+	}
+}
 
 /**
  * Internal helper function with shared code for installed() and updated().
@@ -100,14 +123,14 @@ def mainPage() {
 	  	label title: "This child app's Name (optional)", required: false, submitOnChange: true
 	  	if (!app.label) {
 	  		app.updateLabel(app.name)
-	  		atomicState.appDisplayName = app.name
+	  		state.appDisplayName = app.name
 	  	}
 	  	if (app.label.contains('<span ')) {
-	  		if (atomicState?.appDisplayName != null) {
-	  			app.updateLabel(atomicState.appDisplayName)
+	  		if (state?.appDisplayName != null) {
+	  			app.updateLabel(state.appDisplayName)
 	  		} else {
 	  			String myLabel = app.label.substring(0, app.label.indexOf('<span '))
-	  			atomicState.appDisplayName = myLabel
+	  			state.appDisplayName = myLabel
 	  			app.updateLabel(myLabel)
 	  		}				
 	  	}
@@ -128,15 +151,23 @@ def mainPage() {
  * entry since the id stays the same and new off times replace old off times.
  */
 def switchHandler(evt) {
+	def delay = Math.floor(autoTime * 60).toInteger()
+	def startTime = now()
+	def endTime = startTime + autoTime * 60 * 1000
 	// Add the watched device if turning on, or off if inverted mode
 	if ((evt.value == "on") ^ (invert == true)) {
-	    def delay = Math.floor(autoTime * 60).toInteger()
+		if (debugOutput) log.debug "adding ${evt.device.id} for ${endTime}"
 	    runIn(delay, scheduleHandler, [overwrite: false])
-	    atomicState.cycleEnd = now() + autoTime * 60 * 1000
-	    state.offList[evt.device.id] = now() + autoTime * 60 * 1000
+	    state.offList[evt.device.id] = endTime
+		atomicState.lastSwitch = endTime
+		if (debugOutput) log.debug "offtime: ${state.offList[evt.device.id]}"
 	} else {
+		if (debugOutput) log.debug "removing ${evt.device.id}"
 	    state.offList.remove(evt.device.id)
 	}
+	log.debug "setting cycleEnd"
+	atomicState.cycleEnd = findNextOffTime();
+	log.debug " cycleEnd ${atomicState.cycleEnd}"
 	updateMyLabel()
 
 	if (debugOutput) log.debug "switchHandler delay: $delay, evt.device:${evt.device}, evt.value:${evt.value}, state:${state}, " +
@@ -145,23 +176,17 @@ def switchHandler(evt) {
 
 
 /**
- * Handler called every minute to see if any devices should be turned off, or on.
- *
- * THe first pass used an optimized schedule that looked for the next switch to
- * turn off and would schedule a callback for exactly that time and then
- * reschedule the next off item, if any.  However, it seemed error-prone and
- * cumbersome since errors can happen that may interrupt the rescheduling.
- * Calling a tiny function with a quick check seemed ok to do every minute
- * so that's v1.0 for now.
+ * Handler called when it is time to check if switches should be turned off.
  */
 def scheduleHandler() {
+	def start = now()
 	// Find all map entries with an off-time that is earlier than now
-	def actionList = state.offList.findAll { it.value < now() }
+	def actionList = state.offList.findAll { it.value < start }
 	
 	// Find all devices that match the off-entries from above
 	def deviceList = devices.findAll { device -> actionList.any { it.key == device.id } }
 	
-	if (debugOutput) log.debug "scheduleHandler now:${now()} offList:${state.offList} actionList:${actionList} deviceList:${deviceList}"
+	if (debugOutput) log.debug "scheduleHandler now:${start} offList:${state.offList} actionList:${actionList} deviceList:${deviceList}"
 	
 	// Call off(), or on() if inverted, on all relevant devices and remove them from offList
 	if (!master || master.latestValue("switch") == "on") {
@@ -170,7 +195,19 @@ def scheduleHandler() {
 	} else {
 	    if (debugOutput) log.debug "Skipping actions because MasterSwitch '${master?.displayName}' is Off"
 	}
+	if (debugOutput) log.debug "Remove devices from offlist: ${actionList}"
 	state.offList -= actionList
+	atomicState.cycleEnd = findNextOffTime()
+	updateMyLabel()
+}
+
+def findNextOffTime() {
+	if (state.offList) {
+		return state.offList.min({it.value}).value
+	} else {
+		log.debug "no offlist"
+		return -1
+	}
 }
 
 
@@ -194,19 +231,19 @@ def updateMyLabel() {
 	String flag = '<span '
 
 	// Display state / status as part of the label...
-	String myLabel = atomicState.appDisplayName
+	String myLabel = state.appDisplayName
 	if ((myLabel == null) || !app.label.startsWith(myLabel)) {
 		myLabel = app.label ?: app.name
-		if (!myLabel.contains(flag)) atomicState.appDisplayName = myLabel
+		if (!myLabel.contains(flag)) state.appDisplayName = myLabel
 	} 
 	if (myLabel.contains(flag)) {
 		// strip off any connection status tag :: retain the original display name
 		myLabel = myLabel.substring(0, myLabel.indexOf(flag))
-		atomicState.appDisplayName = myLabel
+		state.appDisplayName = myLabel
 	}
 
 	if (!master || master.latestValue("switch") == "off") {
-	    if (devices.findAll{it.latestValue("switch") == "on"}.size) {
+	    if (atomicState.cycleEnd > 0 && (devices.findAll{it.latestValue("switch") == "on"}.size)) {
 		    myLabel = myLabel + "<span style=\"color:Green\"> Active until " + fixDateTimeString(atomicState.cycleEnd) + "</span>"		
 	    } else {
 		myLabel = myLabel + " <span style=\"color:Green\">Idle</span>"
@@ -217,7 +254,8 @@ def updateMyLabel() {
 		atomicState.cycleEnd = -1
 	}
 
-	if (app.label != myLabel) app.updateLabel(myLabel) ; log.debug "label: $myLabel"
+	if (app.label != myLabel) app.updateLabel(myLabel)
+	log.debug "label: $myLabel"
 }
 
 
