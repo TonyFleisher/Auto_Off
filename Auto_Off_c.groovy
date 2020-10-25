@@ -66,7 +66,6 @@ def updated() {
 		if (descTextEnable) log.warn "Auto_Off reset."
 		cleanupOffList()
 		rescheduleOffList()
-		updateMyLabel()
 	}
 	if (autoTime > 1440) {
 	    autoTime = 1440
@@ -143,7 +142,6 @@ def switchHandler(evt) {
 	    if (debugOutput) log.debug "removing ${evt.device.id}"
 	    state.offList.remove(evt.device.id)
 	}
-	atomicState.cycleEnd = findNextOffTime();
 	updateMyLabel()
 
 	if (debugOutput) log.debug "switchHandler delay: $delay, evt.device:${evt.device}, evt.value:${evt.value}, state:${state}, " +
@@ -173,7 +171,6 @@ def scheduleHandler() {
 	}
 	if (debugOutput) log.debug "Remove devices from offlist: ${actionList}"
 	state.offList -= actionList
-	atomicState.cycleEnd = findNextOffTime()
 	updateMyLabel()
 }
 
@@ -206,9 +203,9 @@ def rescheduleOffList() {
 /**
  * Helper method to get the next time a device is expected to be turned off
  */
-def findNextOffTime() {
+def findLastOffTime() {
 	if (state.offList) {
-		return state.offList.min({it.value}).value
+		return state.offList.max({it.value}).value
 	} else {
 		log.debug "no offlist"
 		return -1
@@ -247,6 +244,7 @@ def updateMyLabel() {
 		atomicState.appDisplayName = myLabel
 	}
 
+	atomicState.cycleEnd = findLastOffTime()
 	if (!master || master.latestValue("switch") == "off") {
 	    if (atomicState.cycleEnd > 0 && (devices.findAll{it.latestValue("switch") == "on"}.size)) {
 		    myLabel = myLabel + "<span style=\"color:Green\"> Active until " + fixDateTimeString(atomicState.cycleEnd) + "</span>"		
