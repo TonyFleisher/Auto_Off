@@ -105,7 +105,7 @@ def mainPage() {
 	  		atomicState.appDisplayName = app.name
 	  	}
 	  	if (app.label.contains('<span ')) {
-	  		if (state?.appDisplayName != null) {
+	  		if (atomicState?.appDisplayName != null) {
 	  			app.updateLabel(atomicState.appDisplayName)
 	  		} else {
 	  			String myLabel = app.label.substring(0, app.label.indexOf('<span '))
@@ -135,11 +135,10 @@ def switchHandler(evt) {
 	def endTime = startTime + autoTime * 60 * 1000
 	// Add the watched device if turning on, or off if inverted mode
 	if ((evt.value == "on") ^ (invert == true)) {
-	    if (debugOutput) log.debug "adding ${evt.device.id} for ${endTime}"
 	    runIn(delay, scheduleHandler, [overwrite: false])
 	    state.offList[evt.device.id] = endTime
 	    atomicState.lastSwitch = endTime
-	    if (debugOutput) log.debug "offtime: ${state.offList[evt.device.id]}"
+	    if (debugOutput) log.debug "offtime: ${state.offList[evt.device.id]}, device: ${evt.device.id}"
 	} else {
 	    if (debugOutput) log.debug "removing ${evt.device.id}"
 	    state.offList.remove(evt.device.id)
