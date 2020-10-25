@@ -76,26 +76,6 @@ def updated() {
 	initialize()
 }
 
-def cleanupOffList() {
-	def deviceList = devices?.collect { it.id }
-	if (deviceList) {
-		if (state.offList) {
-			state.offList -= (state.offList.findAll { !(deviceList.contains(it.key)) })
-		}
-	} else {
-		if (debugOutput) log.debug "Clearing offList"
-		state.offList = [:]
-	}
-}
-
-def rescheduleOffList() {
-	state.offList?.each {
-		def runTime = new Date(it.value)
-		if (debugOutput) log.debug "Scheduling handler for dev ${it.key} for ${runTime}"
-		runOnce(runTime, scheduleHandler, [overwrite: false])
-	}
-}
-
 /**
  * Internal helper function with shared code for installed() and updated().
  */
@@ -104,7 +84,6 @@ private initialize() {
 	subscribe(devices, "switch", switchHandler)
 	updateMyLabel()
 }
-
 
 /**
  * Main configuration function declares the UI shown.
@@ -201,6 +180,35 @@ def scheduleHandler() {
 	updateMyLabel()
 }
 
+/**
+ * After update, remove devices no longer assigned from the offList
+ */
+def cleanupOffList() {
+	def deviceList = devices?.collect { it.id }
+	if (deviceList) {
+		if (state.offList) {
+			state.offList -= (state.offList.findAll { !(deviceList.contains(it.key)) })
+		}
+	} else {
+		if (debugOutput) log.debug "Clearing offList"
+		state.offList = [:]
+	}
+}
+
+/**
+ * After update, recreate scheduled jobs based on offList
+ */
+def rescheduleOffList() {
+	state.offList?.each {
+		def runTime = new Date(it.value)
+		if (debugOutput) log.debug "Scheduling handler for dev ${it.key} for ${runTime}"
+		runOnce(runTime, scheduleHandler, [overwrite: false])
+	}
+}
+
+/**
+ * Helper method to get the next time a device is expected to be turned off
+ */
 def findNextOffTime() {
 	if (state.offList) {
 		return state.offList.min({it.value}).value
