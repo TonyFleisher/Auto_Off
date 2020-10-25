@@ -71,7 +71,7 @@ def updated() {
 	if (autoTime > 1440) {
 	    autoTime = 1440
 	    app.updateSetting("autoTime", autoTime)
-		log.info "Adjusting auto-off time to 1 day (max)"
+	    log.info "Adjusting auto-off time to 1 day (max)"
 	}
 	initialize()
 }
@@ -102,14 +102,14 @@ def mainPage() {
 	  	label title: "This child app's Name (optional)", required: false, submitOnChange: true
 	  	if (!app.label) {
 	  		app.updateLabel(app.name)
-	  		state.appDisplayName = app.name
+	  		atomicState.appDisplayName = app.name
 	  	}
 	  	if (app.label.contains('<span ')) {
 	  		if (state?.appDisplayName != null) {
-	  			app.updateLabel(state.appDisplayName)
+	  			app.updateLabel(atomicState.appDisplayName)
 	  		} else {
 	  			String myLabel = app.label.substring(0, app.label.indexOf('<span '))
-	  			state.appDisplayName = myLabel
+	  			atomicState.appDisplayName = myLabel
 	  			app.updateLabel(myLabel)
 	  		}				
 	  	}
@@ -135,18 +135,16 @@ def switchHandler(evt) {
 	def endTime = startTime + autoTime * 60 * 1000
 	// Add the watched device if turning on, or off if inverted mode
 	if ((evt.value == "on") ^ (invert == true)) {
-		if (debugOutput) log.debug "adding ${evt.device.id} for ${endTime}"
+	    if (debugOutput) log.debug "adding ${evt.device.id} for ${endTime}"
 	    runIn(delay, scheduleHandler, [overwrite: false])
 	    state.offList[evt.device.id] = endTime
-		atomicState.lastSwitch = endTime
-		if (debugOutput) log.debug "offtime: ${state.offList[evt.device.id]}"
+	    atomicState.lastSwitch = endTime
+	    if (debugOutput) log.debug "offtime: ${state.offList[evt.device.id]}"
 	} else {
-		if (debugOutput) log.debug "removing ${evt.device.id}"
+	    if (debugOutput) log.debug "removing ${evt.device.id}"
 	    state.offList.remove(evt.device.id)
 	}
-	log.debug "setting cycleEnd"
 	atomicState.cycleEnd = findNextOffTime();
-	log.debug " cycleEnd ${atomicState.cycleEnd}"
 	updateMyLabel()
 
 	if (debugOutput) log.debug "switchHandler delay: $delay, evt.device:${evt.device}, evt.value:${evt.value}, state:${state}, " +
@@ -239,15 +237,15 @@ def updateMyLabel() {
 	String flag = '<span '
 
 	// Display state / status as part of the label...
-	String myLabel = state.appDisplayName
+	String myLabel = atomicState.appDisplayName
 	if ((myLabel == null) || !app.label.startsWith(myLabel)) {
 		myLabel = app.label ?: app.name
-		if (!myLabel.contains(flag)) state.appDisplayName = myLabel
+		if (!myLabel.contains(flag)) atomicState.appDisplayName = myLabel
 	} 
 	if (myLabel.contains(flag)) {
 		// strip off any connection status tag :: retain the original display name
 		myLabel = myLabel.substring(0, myLabel.indexOf(flag))
-		state.appDisplayName = myLabel
+		atomicState.appDisplayName = myLabel
 	}
 
 	if (!master || master.latestValue("switch") == "off") {
