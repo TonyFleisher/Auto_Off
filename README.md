@@ -6,6 +6,6 @@ This version converted Mattias Fornander's Auto Off to be a Parent/Child app ins
 
 One major difference was that the original polls every minute looking for devices to turn off. This new version starts a timer when the switch turns On.
 
-Auto_Off_c is the child app that uses a Delay vs Poll for switches.
-Auto_Off_o is the child app that uses a Poll vs Delay for switches, for backwards compatability.
-Auto_Off_d is the child app that uses a Delay vs Poll for dimmers and is somewhat redundant because dimmers are switches too.
+Auto_Off_c is the child app that uses a Delay vs Poll for switches.<br>
+Auto_Off_o is the child app that uses a Poll vs Delay for switches, for backwards compatability.<br>
+Auto_Off_d is the child app that uses a Delay vs Poll for dimmers and is somewhat redundant because dimmers are switches too.<br>
