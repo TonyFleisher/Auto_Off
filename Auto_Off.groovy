@@ -13,7 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
-	public static String version()      {  return "v1.0.1"  }
+	public static String version()      {  return "v1.0.2"  }
 
 
 definition(
@@ -66,6 +66,8 @@ def mainPage() {
 		}
       	section (){app(name: "Auto_Off", appName: "Auto_Off device", namespace: "csteele", title: "Create a New Auto Off Child - Delay", multiple: true)}    
       	  
+//      	section (){app(name: "Auto_Off", appName: "Auto_Off dim", namespace: "csteele", title: "Create a New Auto Off Child - Dimmer", multiple: true)}    
+
       	section (){app(name: "Auto_Off", appName: "Auto_Off poll", namespace: "csteele", title: "Create a New Auto Off Child - Poll", multiple: true)}    
 
       	section (title: "<b>Name/Rename</b>") {label title: "Enter a name for this parent app (optional)", required: false}
@@ -111,6 +113,10 @@ def updateCheckHandler(resp, data) {
 		respUD = parseJson(resp.data)
 		//log.warn " Version Checking - Response Data: $respUD"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver 
 		state.Copyright = "${thisCopyright} -- ${version()}"
+		if (respUD.application.(state.InternalName) == null) {
+			if (descTextEnable) log.info "This Application is not version tracked yet."
+			return
+		}
 		// uses reformattted 'version2.json' 
 		def newVer = padVer(respUD.application.(state.InternalName).ver)
 		def currentVer = padVer(version())               
