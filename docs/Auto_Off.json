@@ -38,9 +38,10 @@
       "name": "Auto_Off dim",
       "namespace": "csteele",
       "location": "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_d.groovy",
-      "required": true,
+      "version": "1.0.1",
       "oauth": false,
-      "primary": false
+      "primary": false,
+      "required": false
     }
   ]
 }
