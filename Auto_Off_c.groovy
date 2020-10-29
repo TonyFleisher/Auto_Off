@@ -17,7 +17,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
-	public static String version()      {  return "v1.0.3"  }
+	public static String version()      {  return "v1.0.4"  }
 
 import groovy.time.*
 
@@ -58,16 +58,13 @@ def installed() {
  */
 def updated() {
 	if (descTextEnable) log.info "Updated with settings: ${settings}"
+	state.delay = Math.floor(autoTime * 60).toInteger()
  	String curPref = ("$autoTime${devices}${master}$invert").toString().bytes.encodeBase64()
  	if (curPref != state.prevPref) {
 		state.prevPref = curPref
 		unsubscribe()
 		unschedule()
-		if (descTextEnable) log.warn "Auto_Off reset."
-	}
-	if (autoTime > 1440) {
-	    autoTime = 1440
-	    app.updateSetting("autoTime", autoTime)
+		if (descTextEnable) log.warn "This Auto_Off Child was reset."
 	}
 	initialize()
 }
@@ -79,7 +76,7 @@ def updated() {
 private initialize() {
 	if (state.offList == null) state.offList = [:]
 	subscribe(devices, "switch", switchHandler)
-	updateMyLabel()
+	updateMyLabel("1")
 }
 
 
@@ -87,11 +84,11 @@ private initialize() {
  * Main configuration function declares the UI shown.
  */
 def mainPage() {
+	updateMyLabel("2")
 	dynamicPage(name: "mainPage", install: true, uninstall: true) {
-	  updateMyLabel()
 	  section("<h2>${app.label ?: app.name}</h2>"){
             paragraph '<i>Automatically turn off/on devices after set amount of time on/off.</i>'
-            input name: "autoTime", type: "number", title: "Time until auto-off (minutes)", required: true
+            input name: "autoTime", type: "number", range: "1..1440", title: "Time until auto-off (minutes) 24hrs max", required: true
             input name: "devices", type: "capability.switch", title: "Devices", required: true, multiple: true
             input name: "invert", type: "bool", title: "Invert logic (make app Auto On)", defaultValue: false
             input name: "master", type: "capability.switch", title: "Master Switch", multiple: false
@@ -128,18 +125,19 @@ def mainPage() {
  * entry since the id stays the same and new off times replace old off times.
  */
 def switchHandler(evt) {
+	def oNow = now() // grab time object: one exact same time then compare and display.
 	// Add the watched device if turning on, or off if inverted mode
 	if ((evt.value == "on") ^ (invert == true)) {
-	    def delay = Math.floor(autoTime * 60).toInteger()
-	    runIn(delay, scheduleHandler, [overwrite: false])
-	    atomicState.cycleEnd = now() + autoTime * 60 * 1000
-	    state.offList[evt.device.id] = now() + autoTime * 60 * 1000
+	    runIn(state.delay, scheduleHandler, [overwrite: false])
+	    atomicState.cycleEnd = oNow + autoTime * 60 * 1000
+	    state.offList[evt.device.id] = oNow + autoTime * 60 * 1000
 	} else {
 	    state.offList.remove(evt.device.id)
+	    if (!state.offList) unschedule(scheduleHandler)
 	}
-	updateMyLabel()
+	updateMyLabel("3")
 
-	if (debugOutput) log.debug "switchHandler delay: $delay, evt.device:${evt.device}, evt.value:${evt.value}, state:${state}, " +
+	if (debugOutput) log.debug "switchHandler delay: $state.delay, evt.device:${evt.device}, evt.value:${evt.value}, state:${state}, " +
 	    "${evt.value == "on"} ^ ${invert==true} = ${(evt.value == "on") ^ (invert == true)}"
 }
 
@@ -155,22 +153,23 @@ def switchHandler(evt) {
  * so that's v1.0 for now.
  */
 def scheduleHandler() {
+	def oNow = now() // grab time object: one exact same time then compare and display.
 	// Find all map entries with an off-time that is earlier than now
-	def actionList = state.offList.findAll { it.value < now() }
+	def actionList = state.offList.findAll { it.value < oNow }
 	
 	// Find all devices that match the off-entries from above
 	def deviceList = devices.findAll { device -> actionList.any { it.key == device.id } }
 	
-	if (debugOutput) log.debug "scheduleHandler now:${now()} offList:${state.offList} actionList:${actionList} deviceList:${deviceList}"
+	if (debugOutput) log.debug "scheduleHandler now:${oNow} offList:${state.offList} actionList:${actionList} deviceList:${deviceList}"
 	
 	// Call off(), or on() if inverted, on all relevant devices and remove them from offList
 	if (!master || master.latestValue("switch") == "on") {
-	    if (invert) deviceList*.on()
-	    else deviceList*.off()
+	    invert ? deviceList*.on() : deviceList*.off()
 	} else {
 	    if (debugOutput) log.debug "Skipping actions because MasterSwitch '${master?.displayName}' is Off"
 	}
 	state.offList -= actionList
+	updateMyLabel("4")
 }
 
 
@@ -190,7 +189,7 @@ def display()
 }
 
 
-def updateMyLabel() {
+def updateMyLabel(c) {
 	String flag = '<span '
 
 	// Display state / status as part of the label...
@@ -205,16 +204,19 @@ def updateMyLabel() {
 		atomicState.appDisplayName = myLabel
 	}
 
+//	log.debug "uml: $c, $state.offList, $atomicState.cycleEnd"
+	atomicState.cycleEnd = state.offList ? state.offList.max({it.value}).value : 0
 	if (!master || master.latestValue("switch") == "off") {
-	    if (devices.findAll{it.latestValue("switch") == "on"}.size) {
+	    String k = invert ? "off" : "on"
+	    if (atomicState.cycleEnd && (devices.findAll{it.latestValue("switch") == k }.size)) {
 		    myLabel = myLabel + "<span style=\"color:Green\"> Active until " + fixDateTimeString(atomicState.cycleEnd) + "</span>"		
 	    } else {
 		myLabel = myLabel + " <span style=\"color:Green\">Idle</span>"
-		atomicState.cycleEnd = -1
-        }
+		atomicState.cycleEnd = 0
+	    }
 	 } else {
 		myLabel = myLabel + " <span style=\"color:Crimson\">[-]</span>"
-		atomicState.cycleEnd = -1
+		atomicState.cycleEnd = 0
 	}
 
 	if (app.label != myLabel) app.updateLabel(myLabel) ; log.debug "label: $myLabel"
@@ -253,14 +255,17 @@ String fixDateTimeString( eventDate) {
 }
 
 
-// Parent does the version JSON fetch and distributes it to each Child.
+// Parent does the version2 JSON fetch and distributes it to each Child.
 def updateCheck(respUD)
 {    
 	state.InternalName = "Auto_Off_c"
 	state.Status = "Unknown"
 
 	state.Copyright = "${thisCopyright} -- ${version()}"
-	// uses reformattted 'version2.json' 
+	if (respUD.application.(state.InternalName) == null) {
+		if (descTextEnable) log.info "This Application is not version tracked yet."
+		return
+	}
 	def newVer = padVer(respUD.application.(state.InternalName).ver)
 	def currentVer = padVer(version())               
 	state.UpdateInfo = (respUD.application.(state.InternalName).updated)
@@ -299,4 +304,4 @@ def padVer(ver) {
 	return pad
 }
 
-def getThisCopyright(){"&copy; 2019 C Steele "}
+def getThisCopyright(){"&copy; 2020 C Steele "}
