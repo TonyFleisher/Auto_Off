@@ -8,7 +8,7 @@
       "name": "Auto_Off",
       "namespace": "csteele",
       "location": "https://raw.githubusercontent.com/csteele-PD/Hubitat-public/master/Auto_Off/Auto_Off.groovy",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "oauth": false,
       "primary": false,
       "required": true
@@ -18,7 +18,7 @@
       "name": "Auto_Off device",
       "namespace": "csteele",
       "location": "https://raw.githubusercontent.com/csteele-PD/Hubitat-public/master/Auto_Off/Auto_Off_c.groovy",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "oauth": false,
       "primary": false,
       "required": true
@@ -28,10 +28,20 @@
       "name": "Auto_Off poll",
       "namespace": "csteele",
       "location": "https://raw.githubusercontent.com/csteele-PD/Hubitat-public/master/Auto_Off/Auto_Off_o.groovy",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "oauth": false,
       "primary": false,
       "required": true
+    },
+    {
+      "id": "9158cdde-6987-4291-a4f8-4ebd93e0ed6e",
+      "name": "Auto_Off dim",
+      "namespace": "csteele",
+      "location": "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_d.groovy",
+      "version": "1.0.1",
+      "oauth": false,
+      "primary": false,
+      "required": false
     }
   ]
 }

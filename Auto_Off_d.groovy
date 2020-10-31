@@ -1,5 +1,5 @@
 /**
- *  Hubitat Import URL: https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_c.groovy
+ *  Hubitat Import URL: https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_d.groovy
  */
 
 /**
@@ -17,18 +17,18 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
-	public static String version()      {  return "v1.0.4"  }
+	public static String version()      {  return "v1.0.1"  }
 
 import groovy.time.*
 
 // Set app Metadata for the Hub
 definition(
-	name: "Auto_Off device",
+	name: "Auto_Off dim",
 	namespace: "csteele",
 	author: "Mattias Fornander, CSteele",
 	description: "Automatically turn off/on devices after set amount of time on/off",
 	category: "Automation",
-	importUrl: "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_c.groovy",
+	importUrl: "https://raw.githubusercontent.com/HubitatCommunity/Auto_Off/main/Auto_Off_d.groovy",
 	    
 	parent: "csteele:Auto_Off",
 	
@@ -59,7 +59,7 @@ def installed() {
 def updated() {
 	if (descTextEnable) log.info "Updated with settings: ${settings}"
 	state.delay = Math.floor(autoTime * 60).toInteger()
- 	String curPref = ("$autoTime${devices}${master}$invert").toString().bytes.encodeBase64()
+ 	String curPref = ("$autoTime${devices}${master}$dRate$invert").toString().bytes.encodeBase64()
  	if (curPref != state.prevPref) {
 		state.prevPref = curPref
 		unsubscribe()
@@ -75,6 +75,7 @@ def updated() {
  */
 private initialize() {
 	if (state.offList == null) state.offList = [:]
+	state.topLevel = [0, 99]
 	subscribe(devices, "switch", switchHandler)
 	updateMyLabel("1")
 }
@@ -89,7 +90,8 @@ def mainPage() {
 	  section("<h2>${app.label ?: app.name}</h2>"){
             paragraph '<i>Automatically turn off/on devices after set amount of time on/off.</i>'
             input name: "autoTime", type: "number", range: "1..1440", title: "Time until auto-off (minutes) 24hrs max", required: true
-            input name: "devices", type: "capability.switch", title: "Devices", required: true, multiple: true
+            input name: "devices", type: "capability.switchLevel", title: "Devices", required: true, multiple: true
+            input name: "dRate", type: "number", range: "1..100", title: "Dimming rate (in Seconds)", required: false, defaultValue: 1
             input name: "invert", type: "bool", title: "Invert logic (make app Auto On)", defaultValue: false
             input name: "master", type: "capability.switch", title: "Master Switch", multiple: false
         }
@@ -137,8 +139,7 @@ def switchHandler(evt) {
 	}
 	updateMyLabel("3")
 
-	if (debugOutput) log.debug "switchHandler delay: $state.delay, evt.device:${evt.device}, evt.value:${evt.value}, state:${state}, " +
-	    "${evt.value == "on"} ^ ${invert==true} = ${(evt.value == "on") ^ (invert == true)}"
+	if (debugOutput) log.debug "switchHandler delay: $state.delay, evt.device:${evt.device}, evt.value:${evt.value}, invert:$invert, state:${state} "
 }
 
 
@@ -162,9 +163,9 @@ def scheduleHandler() {
 	
 	if (debugOutput) log.debug "scheduleHandler now:${oNow} offList:${state.offList} actionList:${actionList} deviceList:${deviceList}"
 	
-	// Call off(), or on() if inverted, on all relevant devices and remove them from offList
+	// Call setLevel & off() on all relevant devices and remove them from offList
 	if (!master || master.latestValue("switch") == "on") {
-	    invert ? deviceList*.on() : deviceList*.off()
+	    invert ? deviceList*.setLevel(state.topLevel[1], dRate) : deviceList*.setLevel(state.topLevel[0], dRate)
 	} else {
 	    if (debugOutput) log.debug "Skipping actions because MasterSwitch '${master?.displayName}' is Off"
 	}
@@ -258,7 +259,7 @@ String fixDateTimeString( eventDate) {
 // Parent does the version2 JSON fetch and distributes it to each Child.
 def updateCheck(respUD)
 {    
-	state.InternalName = "Auto_Off_c"
+	state.InternalName = "Auto_Off_d"
 	state.Status = "Unknown"
 
 	state.Copyright = "${thisCopyright} -- ${version()}"
@@ -266,9 +267,9 @@ def updateCheck(respUD)
 		if (descTextEnable) log.info "This Application is not version tracked yet."
 		return
 	}
-	def newVer = padVer(respUD.application.(state.InternalName).ver)
+	def newVer = padVer(respUD.application.(state.InternalName)?.ver)
 	def currentVer = padVer(version())               
-	state.UpdateInfo = (respUD.application.(state.InternalName).updated)
+	state.UpdateInfo = (respUD.application.(state.InternalName)?.updated)
       // log.debug "updateCheck: ${respUD.application.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}"
 	
 	switch(newVer) {
